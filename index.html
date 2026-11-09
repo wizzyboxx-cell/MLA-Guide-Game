@@ -506,7 +506,7 @@ function renderMap(){if(!S.grade||!LEVELS.length)return renderLevelSelect();docu
   app.innerHTML=`
   <section class="hero">
     <h1>Welcome to Citation Island</h1>
-    <p>${GRADES[S.grade].name} route, ${GRADES[S.grade].band}: explore all ${LEVELS.length} zones to reach the treasure on Volcano Summit. Each zone teaches one MLA 9 skill, and clearing it lifts the fog from the next.</p><p><a class="doclink" href="https://MLA9-Citation.pdf/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a></p>
+    <p>${GRADES[S.grade].name} route, ${GRADES[S.grade].band}: explore all ${LEVELS.length} zones to reach the treasure on Volcano Summit. Each zone teaches one MLA 9 skill, and clearing it lifts the fog from the next.</p><p><a class="doclink" href="https://MLA9-Citations.pdf/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a></p>
   </section>
   <div class="mapbox">
     <svg viewBox="0 0 600 740" role="group" aria-label="Island map">
@@ -653,7 +653,7 @@ function renderFinale(){
       <circle cx="90" cy="98" r="3" fill="#123"/>
     </svg>
     <p style="margin-inline:auto"><b style="color:var(--gold);font-size:22px">${t} / ${LEVELS.length*3} stars</b></p>
-    <p class="muted" style="margin-inline:auto">Keep the cheat sheet handy whenever you write your Works Cited list.</p><p style="margin-inline:auto"><a class="doclink" href="https://MLA9-Citation.pdf/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a></p>
+    <p class="muted" style="margin-inline:auto">Keep the cheat sheet handy whenever you write your Works Cited list.</p><p style="margin-inline:auto"><a class="doclink" href="https://MLA9-Citations.pdf/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a></p>
     <div class="actions"><button class="btn alt" id="map">Back to the island</button><button class="btn" id="cs">Open cheat sheet</button></div></div>`;
   document.getElementById("map").onclick=renderMap;document.getElementById("cs").onclick=renderSheet;
   sWin();confetti(160);window.scrollTo({top:0});
@@ -663,7 +663,7 @@ function renderFinale(){
 function renderSheet(){
   play=null;
   const item=(t,pattern,ex,note)=>`<div class="item"><h3>${t}</h3><p class="muted" style="margin:0;font-size:15px">${pattern}</p>${ex?`<div class="cite">${C(ex)}</div>`:""}${note?`<p class="muted" style="margin:0;font-size:14px">${note}</p>`:""}</div>`;
-  app.innerHTML=`<section class="hero"><h1>Cheat sheet</h1><p>Every MLA 9 pattern from the quest in one place.</p><p><a class="doclink" href="https://MLA9-Citation.pdf/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a> to read, print or download it.</p></section>
+  app.innerHTML=`<section class="hero"><h1>Cheat sheet</h1><p>Every MLA 9 pattern from the quest in one place.</p><p><a class="doclink" href="https://MLA9-Citations.pdf/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a> to read, print or download it.</p></section>
   ${legend(["author","title","container","pub","date","link","plain"])}
   <div class="sheet">
     <div class="item"><h3>Works Cited page</h3><ul class="rules" style="margin:4px 0 0">
