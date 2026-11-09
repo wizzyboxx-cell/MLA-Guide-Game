@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Citation Island: an island adventure that teaches MLA 9 citation for music sources.">
+<title>Citation Island</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+body{margin:0}
+[hidden]{display:none!important}
+
+/* Layout: one-column adventure app. An island map is the level select; zones unlock along a trail from shore to summit.
+   Deliberately single-theme: deep tropical sea at night with sand, jungle and treasure gold. */
+:root{
+  color-scheme: dark;
+  --bg:#0d2a3a; --bg2:#123749; --card:#16445a; --line:#2e6a85;
+  --ink:#f6fbff; --muted:#a9cad8; --gold:#ffd166; --good:#46d69c; --bad:#ff6f82;
+  --c-author:#ff9466; --c-title:#6ec8ff; --c-container:#c99bff; --c-pub:#ffd166; --c-date:#7be3a8; --c-link:#7fe0e8; --c-plain:#d8d7f5;
+  --display:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:radial-gradient(1200px 600px at 50% -200px,#1d5a73 0%,var(--bg) 60%) fixed,var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 48px}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0;line-height:1.15}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.tile:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+/* Top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding-block:10px;margin-bottom:6px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.3px;display:flex;align-items:center;gap:8px;margin-right:auto;background:none;border:0;padding:0}
+.brand svg{flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-variant-numeric:tabular-nums;font-size:15px}
+.pill.star{color:var(--gold)}
+.ghost{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:15px;font-weight:700}
+.ghost:hover{border-color:var(--muted)}
+
+/* Map */
+.hero{padding-block:10px 4px}
+.hero h1{font-size:clamp(30px,6vw,44px)}
+.hero p{color:var(--muted);margin:.4em 0 0;max-width:56ch}
+.mapbox{margin:16px auto 0;max-width:560px;border-radius:24px;overflow:hidden;border:3px solid #fff3d6;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.mapbox svg{display:block;width:100%;height:auto}
+.zone{cursor:pointer}.zone.locked{cursor:not-allowed}
+.zone:not(.locked):hover .zi,.zone:focus-visible .zi{transform:scale(1.12)}
+.zi{transition:transform .2s;transform-box:fill-box;transform-origin:center}
+.zone:focus{outline:none}.zone:focus-visible rect{stroke:#fff;stroke-width:5}
+.fog circle{fill:#eef4f7;opacity:.93}
+.bob{animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.mapfoot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.logh{font-size:22px;margin-top:22px}
+.staff{margin-top:18px;background:var(--bg2);border:1px solid var(--line);border-radius:22px;padding:10px 6px 4px;overflow:hidden}
+.staff svg{display:block;width:100%;height:auto}
+.note{cursor:pointer}
+.note.locked{cursor:not-allowed}
+.note:focus-visible circle.head{stroke:var(--gold);stroke-width:5}
+.levels{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:16px}
+.lvl{display:flex;gap:12px;align-items:center;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.lvl:hover:not(:disabled){border-color:var(--lc,var(--gold));transform:translateY(-2px)}
+.lvl{transition:transform .15s,border-color .15s}
+.lvl:disabled{opacity:.45;cursor:not-allowed}
+.lvl .num{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:18px;background:var(--lc);color:#15173a}
+.lvl b{display:block;font-family:var(--display);font-weight:600;font-size:17px}
+.lvl small{color:var(--muted);font-size:14px}
+.lvl .st{color:var(--gold);letter-spacing:2px;font-size:14px}
+
+/* Stage (level play) */
+.prog{height:12px;background:var(--bg2);border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:6px 0 18px}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--lc,var(--gold)),var(--gold));border-radius:99px;transition:width .4s}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px 20px;animation:pop .35s ease}
+@keyframes pop{from{transform:translateY(10px) scale(.98);opacity:.4}to{transform:none;opacity:1}}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lc,var(--gold))}
+.card h2{font-size:clamp(23px,4.6vw,30px);margin:.25em 0 .5em}
+.card p{margin:.5em 0;max-width:62ch}
+.muted{color:var(--muted)}
+.big-ico{font-size:0;margin-bottom:6px}
+
+/* Citation anatomy */
+.cite{font-size:17px;line-height:2.15;background:var(--bg);border:1px dashed var(--line);border-radius:14px;padding:12px 14px;margin:12px 0;overflow-wrap:anywhere}
+.seg{border-radius:7px;padding:3px 6px;margin-right:2px;color:#15173a;font-weight:700;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.k-author{background:var(--c-author)} .k-title{background:var(--c-title)} .k-container{background:var(--c-container)}
+.k-pub{background:var(--c-pub)} .k-date{background:var(--c-date)} .k-link{background:var(--c-link)} .k-plain{background:var(--c-plain)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:14px;color:var(--muted);margin-top:4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.example{font-size:15px;color:var(--muted);margin-top:6px}
+.example .lab{font-weight:700;color:var(--ink)}
+.tip{display:flex;gap:10px;align-items:flex-start;background:rgba(255,201,74,.1);border:1px solid rgba(255,201,74,.35);border-radius:14px;padding:10px 12px;margin-top:12px;font-size:16px}
+.tip b{color:var(--gold)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.split h3{text-wrap:balance}
+.split>div{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+.split h3{font-size:18px;margin-bottom:4px}
+@media (max-width:520px){.split{grid-template-columns:1fr}}
+
+/* Challenges */
+.opts{display:grid;gap:10px;margin-top:14px}
+.opt{text-align:left;background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16.5px;overflow-wrap:anywhere;transition:border-color .15s,transform .1s}
+.opt:hover:not(:disabled){border-color:var(--lc,var(--gold))}
+.opt:active:not(:disabled){transform:scale(.99)}
+.opt.right{border-color:var(--good);background:rgba(70,214,156,.14)}
+.opt.wrong{border-color:var(--bad);background:rgba(255,111,130,.14)}
+.opt:disabled{cursor:default}
+.slots{min-height:64px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;background:var(--bg);border:2px dashed var(--line);border-radius:14px;padding:10px;margin-top:14px}
+.slots:empty::before{content:"Tap the pieces below in the right order";color:var(--muted);font-size:15px;align-self:center;padding:8px}
+.pool{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tile{border:0;border-radius:10px;padding:8px 11px;font-weight:700;font-size:15.5px;color:#15173a;box-shadow:0 3px 0 rgba(0,0,0,.35);overflow-wrap:anywhere;max-width:100%;text-align:left}
+.tile:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.tile.used{display:none}
+.spotline{line-height:2.5;font-size:17px;background:var(--bg);border-radius:14px;padding:12px;margin-top:14px;overflow-wrap:anywhere}
+.spot{border:2px solid var(--line);background:var(--card);border-radius:9px;padding:3px 7px;margin:2px;font-size:16.5px;text-align:left}
+.spot:hover:not(:disabled){border-color:var(--gold)}
+.spot.right{border-color:var(--good);background:rgba(70,214,156,.18)}
+.spot.wrong{border-color:var(--bad);background:rgba(255,111,130,.18)}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.btn{background:var(--gold);color:#1a1530;border:0;border-radius:999px;padding:12px 22px;font-family:var(--display);font-weight:600;font-size:18px;box-shadow:0 4px 0 #b8861a}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b8861a}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.alt{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.fb{margin-top:16px;border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;animation:pop .3s ease}
+.fb.ok{background:rgba(70,214,156,.14);border:1px solid var(--good)}
+.fb.no{background:rgba(255,111,130,.12);border:1px solid var(--bad)}
+.fb h3{font-size:19px}
+.fb p{margin:.2em 0 0}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+
+/* Results */
+.result{text-align:center}
+.stars{display:flex;justify-content:center;gap:10px;margin:14px 0}
+.stars svg{width:60px;height:60px}
+.stars .on{animation:starIn .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes starIn{from{transform:scale(0) rotate(-40deg)}to{transform:none}}
+.result .actions{justify-content:center}
+.badge{margin:6px auto 0;width:170px;display:block}
+
+/* Cheat sheet */
+.page{background:#fbfaf6;color:#1d1d2b;border-radius:6px;padding:18px 20px;font-family:"Times New Roman",Georgia,serif;font-size:14.5px;line-height:2;margin:10px 0;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.page .ph{text-align:center}
+.page .pe{padding-left:2.2em;text-indent:-2.2em}
+.rules{margin:10px 0 0;padding-left:1.2em;display:grid;gap:6px}
+.doclink{color:var(--gold);font-weight:700;text-underline-offset:3px}
+.grades{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
+.gcard{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:22px;padding:18px;min-width:0;transition:transform .15s,border-color .15s}
+.gcard:hover{border-color:var(--lc);transform:translateY(-3px)}
+.gcard svg{background:color-mix(in srgb,var(--lc) 25%,transparent);border-radius:50%;margin-bottom:4px}
+.gband{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lc)}
+.gcard b{font-family:var(--display);font-weight:600;font-size:26px;line-height:1.1}
+.gprog{color:var(--muted);font-size:14px;font-weight:700}
+.gdesc{font-size:15.5px}
+.gstat{margin-top:auto;padding-top:8px;color:var(--gold);font-weight:700;font-size:15px}
+.steps{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.steps li{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:16px}
+.steps .seg{display:inline-block;margin:0 8px 4px 0;font-size:14.5px}
+.browser{background:#fbfaf6;border-radius:12px;overflow:hidden;margin:12px 0;color:#1d2b36;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.bbar{background:#dfe5ea;padding:8px 10px;display:flex;align-items:center;gap:6px;font-size:13px;overflow-wrap:anywhere}
+.bbar i{width:10px;height:10px;border-radius:50%;background:#b8c1c9;flex:none}
+.bbar .seg{margin-left:6px;font-weight:600}
+.bpage{padding:12px 16px 16px;display:grid;gap:8px}
+.bsite .seg{font-size:13px}
+.btitle .seg{font-family:var(--display);font-size:21px;font-weight:600;line-height:1.5}
+.bmeta{display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+.bline{height:8px;border-radius:4px;background:#e2e6ea}.bline.short{width:65%}
+.bfoot{font-size:13px;color:#5a6670;border-top:1px solid #e2e6ea;padding-top:8px}
+.sheet{display:grid;gap:12px;margin-top:12px}
+.sheet .item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.sheet h3{font-size:19px;margin-bottom:4px}
+.sheet .cite{margin:8px 0 4px;font-size:15.5px;line-height:2}
+.sheet table{border-collapse:collapse;width:100%;font-size:15.5px}
+.sheet td,.sheet th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+.sheet th{color:var(--muted);font-weight:700}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:20}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <button class="brand" id="home" aria-label="Back to the island map">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="9" cy="21" r="5.5" fill="#ffc94a"/><rect x="13" y="3" width="3" height="18" rx="1.5" fill="#ffc94a"/><path d="M16 3c4 1 7 4 6 9-1-3-3-4-6-4z" fill="#ffc94a"/></svg>
+      Citation Island
+    </button>
+    <span class="pill star" title="Stars earned"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8 5.7 21.4l1.5-7.1L1.8 9.4 9 8.6z"/></svg><span id="starCount">0</span>/<span id="starMax">24</span></span>
+    <button class="ghost" id="lvlBtn" title="Change your level">Choose level</button>
+    <button class="ghost" id="sheetBtn">Cheat sheet</button>
+    <button class="ghost" id="soundBtn" aria-pressed="true" title="Sound on or off">Sound on</button>
+  </div>
+  <main id="app"></main>
+</div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* ---------- Content (from the MLA Citation Guide for Musicians) ---------- */
+const KEYS={author:"Author",title:"Title (small thing)",container:"Big thing (book, album, website)",pub:"Place, publisher or label",date:"Date",link:"Link or access date",plain:"Other"};
+const C=(parts)=>parts.map(([k,t])=>`<span class="seg k-${k}">${t}</span>`).join(" ");
+const legend=(ks)=>`<div class="legend">${ks.map(k=>`<span><i class="k-${k}"></i>${KEYS[k]}</span>`).join("")}</div>`;
+
+const BASE=[
+ {key:"shore",name:"Soundcheck",sub:"Why and where we cite",color:"#ffc94a",steps:[
+  {type:"learn",title:"Every source gets cited twice",html:`
+   <p>Whenever you use someone else's words or ideas, you give them credit in two places.</p>
+   <div class="split">
+     <div><h3 style="color:var(--c-container)">1. Works Cited</h3><p class="muted" style="margin:0">A list at the <b>end</b> of your work with the full details of every source.</p></div>
+     <div><h3 style="color:var(--c-title)">2. In-text citation</h3><p class="muted" style="margin:0">A short tag in <b>your sentence</b>, right where you use the source, like <b style="color:var(--ink)">(Nettl 57)</b>.</p></div>
+   </div>
+   <div class="tip"><b>MLA 9</b><span>This quest follows the 9th edition of the MLA Handbook, the version your school uses.</span></div>`},
+  {type:"learn",title:"How the Works Cited page looks",html:`
+   <div class="page" aria-hidden="true">
+     <div class="ph">Works Cited</div>
+     <div class="pe">Langhamer, Claire. “Love and Courtship in Mid-Twentieth-Century England.” <i>Historical Journal</i>, vol. 50, no. 1, 2007, pp. 173-96.</div>
+     <div class="pe">Malm, William P. “Japanese Music.” <i>Encyclopedia Britannica</i>, 2015, www.britannica.com/art/Japanese-music.</div>
+     <div class="pe">Paul, Roger. <i>IB Music Revision Guide</i>. 3rd ed., Anthem Press, 2018.</div>
+   </div>
+   <ul class="rules">
+     <li><b>New page</b> at the end, titled <b>Works Cited</b>, centred, not bold.</li>
+     <li><b>Alphabetical</b> by the first word of each entry, usually the author's last name. Ignore A, An and The.</li>
+     <li><b>Double-spaced</b>, with a <b>hanging indent</b>: the first line starts at the margin, the next lines move in half an inch.</li>
+   </ul>`},
+  {type:"mcq",q:"Where do the full details of a source go?",options:["In brackets inside my sentence","In the Works Cited list at the end","In the title of my essay"],answer:1,explain:"The Works Cited list at the end holds the full details. The short tag in brackets goes in your sentence."},
+  {type:"mcq",q:"What is a hanging indent?",options:["Every line of the entry moves in half an inch","The first line starts at the margin and the lines after it move in","The entry is centred on the page"],answer:1,explain:"The first line hangs out at the margin, so the first word of every entry is easy to spot when you scan the alphabetical list."},
+  {type:"build",q:"Sort this Works Cited list into the correct order.",prompt:"Tap the entries from first to last.",tiles:[["plain","Langhamer, Claire."],["plain","Malm, William P."],["plain","Nettl, Bruno, and Timothy Rommen."],["plain","Paul, Roger."]],explain:"Alphabetical by last name: Langhamer, Malm, Nettl, Paul."}
+ ]},
+ {key:"books",name:"Books",sub:"Print sources and authors",color:"#ff9466",steps:[
+  {type:"learn",title:"A book, piece by piece",html:`
+   <p>Every citation is a set of pieces in a fixed order. Learn the colours and you can build any of them.</p>
+   <div class="cite">${C([["author","Paul, Roger."],["title","<i>IB Music Revision Guide</i>."],["plain","3rd ed.,"],["pub","Anthem Press,"],["date","2018."]])}</div>
+   ${legend(["author","title","plain","pub","date"])}
+   <p class="example"><span class="lab">Pattern:</span> Last Name, First Name. <i>Title of Book</i>. Edition, Publisher, Year.</p>
+   <div class="tip"><b>MLA 9</b><span>No city of publication. Just the publisher's name, a comma and the year.</span></div>`},
+  {type:"learn",title:"One, two or more authors",html:`
+   <div class="sheet" style="margin:10px 0"><div class="item" style="background:var(--bg)"><table>
+     <tr><th>Authors</th><th>How the entry starts</th></tr>
+     <tr><td>One</td><td><b>Paul, Roger.</b></td></tr>
+     <tr><td>Two</td><td><b>Nettl, Bruno, and Timothy Rommen.</b></td></tr>
+     <tr><td>Three or more</td><td><b>Burkholder, J. Peter, et al.</b></td></tr>
+   </table></div></div>
+   <p>Only the <b>first</b> author is flipped to Last Name, First Name. With three or more, name the first author and add <b>et al.</b> (Latin for "and others").</p>
+   <div class="cite" style="font-size:15.5px">${C([["author","Burkholder, J. Peter, et al."],["title","<i>A History of Western Music</i>."],["plain","10th ed.,"],["pub","W. W. Norton,"],["date","2019."]])}</div>`},
+  {type:"build",q:"Build the MLA 9 citation for Roger Paul's book.",tiles:[["author","Paul, Roger."],["title","<i>IB Music Revision Guide</i>."],["plain","3rd ed.,"],["pub","Anthem Press,"],["date","2018."]],explain:"Author, title, edition, publisher, year."},
+  {type:"mcq",q:"Bruno Nettl and Timothy Rommen wrote a book together. How does the entry start?",options:["Nettl, Bruno, and Rommen, Timothy.","Bruno Nettl and Timothy Rommen.","Nettl, Bruno, and Timothy Rommen."],answer:2,explain:"Only the first author is flipped. The second author keeps normal order."},
+  {type:"spot",q:"This book citation follows an older MLA rule. Tap the piece MLA 9 removes.",parts:[["Nettl, Bruno, and Timothy Rommen."],["<i>Excursions in World Music</i>."],["7th ed.,"],["New York:",true],["Routledge,"],["2017."]],explain:"MLA 9 leaves out the city of publication. Write the publisher and year only."}
+ ]},
+ {key:"web",name:"Websites",sub:"Step by step",color:"#9be564",steps:[
+  {type:"learn",title:"Citing a website, step by step",html:`
+   <p>Work through the page from top to bottom and collect each piece in this order.</p>
+   <ol class="steps">
+    <li><span class="seg k-author">1 Author</span> A person: Last Name, First Name. An organisation: its name. No author, or the author is the website itself? Skip this step.</li>
+    <li><span class="seg k-title">2 Page title</span> The title of the page, in “quotation marks”.</li>
+    <li><span class="seg k-container">3 Website name</span> The name of the whole site, in <i>italics</i>.</li>
+    <li><span class="seg k-pub">4 Publisher</span> Only if it is different from the website name.</li>
+    <li><span class="seg k-date">5 Date</span> When the page was published or updated: Day Month Year, like 3 Feb. 2025.</li>
+    <li><span class="seg k-link">6 URL</span> Copy it from the address bar and leave out https://.</li>
+    <li><span class="seg k-link">7 Access date</span> %%ACCESS%%</li>
+   </ol>`},
+  {type:"learn",title:"Where to find each piece",html:`
+   <p>Most web pages show the pieces in the same places. Match the colours.</p>
+   <div class="browser" aria-hidden="true">
+     <div class="bbar"><i></i><i></i><i></i><span class="seg k-link">https://www.example.com/practise-scales</span></div>
+     <div class="bpage">
+       <div class="bsite"><span class="seg k-container">Example Music Blog</span></div>
+       <div class="btitle"><span class="seg k-title">Five Ways to Practise Scales</span></div>
+       <div class="bmeta"><span class="seg k-author">By Hannah Lee</span> <span class="seg k-date">3 February 2025</span></div>
+       <div class="bline"></div><div class="bline short"></div><div class="bline"></div>
+       <div class="bfoot">© <span class="seg k-pub">Example Media Group</span></div>
+     </div>
+   </div>
+   <p>Put together:</p>
+   <div class="cite">${C([["author","Lee, Hannah."],["title","“Five Ways to Practise Scales.”"],["container","<i>Example Music Blog</i>,"],["pub","Example Media Group,"],["date","3 Feb. 2025,"],["link","www.example.com/practise-scales."]])}</div>
+   <p class="muted" style="font-size:15px">A made-up page to show the shape. Real pages may hide the date or author at the bottom of the page.</p>`},
+  {type:"build",q:"Build the citation for Hannah Lee's web page.",tiles:[["author","Lee, Hannah."],["title","“Five Ways to Practise Scales.”"],["container","<i>Example Music Blog</i>,"],["pub","Example Media Group,"],["date","3 Feb. 2025,"],["link","www.example.com/practise-scales."]],explain:"Author, “Page,” <i>Website</i>, publisher, date, URL."},
+  {type:"mcq",q:"Which URL is written the MLA 9 way?",options:["https://www.example.com/practise-scales","www.example.com/practise-scales","example.com"],answer:1,explain:"Copy the full address but leave out https://. Keep the rest so a reader can find the exact page."},
+  {type:"spot",q:"Tap the piece that breaks an MLA 9 rule.",parts:[["Lee, Hannah."],["“Five Ways to Practise Scales.”"],["<i>Example Music Blog</i>,"],["February 3, 2025,",true],["www.example.com/practise-scales."]],explain:"MLA dates go Day Month Year with long months shortened: 3 Feb. 2025."},
+  {type:"mcq",q:"A page on the Example Music Society website has no named author. The site is run by the Example Music Society. How does the entry start?",options:["Example Music Society.","Anonymous.","With the title of the page"],answer:2,explain:"When the organisation and the website have the same name, skip the author and start with the page title."},
+  {type:"mcq",g:[3],q:"You cite a web page in your Extended Essay. What should you do about the access date?",options:["Leave it out, because MLA 9 says it is optional","Add it, because IB work asks for the date you accessed online sources","Only add it if the page is more than a year old"],answer:1,explain:"MLA 9 makes access dates optional, but IB guidance asks you to show when you accessed online sources. Add “Accessed” and the date at the end."}
+ ]},
+ {key:"light",name:"Online reading",sub:"Encyclopedias and databases",color:"#6ec8ff",steps:[
+  {type:"learn",title:"Articles live inside something bigger",html:`
+   <p>The article title goes in “quotation marks”. The bigger thing that holds it (the <b>container</b>) goes in <i>italics</i>.</p>
+   <div class="cite">${C([["author","Malm, William P."],["title","“Japanese Music.”"],["container","<i>Encyclopedia Britannica</i>,"],["date","2015,"],["link","www.britannica.com/art/Japanese-music."]])}</div>
+   ${legend(["author","title","container","date","link"])}
+   <div class="tip"><b>MLA 9</b><span>If the publisher has the same name as the website, like Britannica, leave the publisher out.</span></div>
+   <p class="example" style="margin-top:12px"><span class="lab">Database article (JSTOR, ProQuest):</span> add volume, issue and pages, then the database in italics and the DOI as a full link.</p>
+   <div class="cite" style="font-size:15.5px">${C([["author","Langhamer, Claire."],["title","“Love and Courtship in Mid-Twentieth-Century England.”"],["container","<i>Historical Journal</i>, vol. 50, no. 1,"],["date","2007,"],["plain","pp. 173-96."],["container","<i>ProQuest</i>,"],["link","https://doi.org/10.1017/S0018246X06005966."]])}</div>`},
+  {type:"spot",q:"Tap the piece that breaks an MLA 9 rule.",parts:[["Langhamer, Claire."],["“Love and Courtship in Mid-Twentieth-Century England.”"],["<i>Historical Journal</i>, vol. 50, no. 1, 2007, pp. 173-96."],["<i>ProQuest</i>,"],["doi:10.1017/S0018246X06005966.",true]],explain:"MLA 9 writes a DOI as a full link: https://doi.org/10.1017/S0018246X06005966."},
+  {type:"spot",q:"Spot the mistake in this database citation.",parts:[["Langhamer, Claire."],["“Love and Courtship in Mid-Twentieth-Century England.”"],["“Historical Journal,”",true],["vol. 50, no. 1, 2007, pp. 173-96."]],explain:"The journal is the container, so it goes in italics: <i>Historical Journal</i>. Quotation marks are for the article inside it."},
+  {type:"mcq",q:"How should 24 April 2020 appear in a Works Cited entry?",options:["April 24, 2020","24 Apr. 2020","24/04/2020"],answer:1,explain:"Day, short month, year: 24 Apr. 2020."}
+ ]},
+ {key:"caves",name:"Songs and albums",sub:"Spotify, Apple Music, CDs",color:"#c99bff",steps:[
+  {type:"learn",title:"Citing what you listen to",html:`
+   <p>The <b>musician or band</b> takes the author spot. A solo artist is flipped like any author. A band name stays as it is.</p>
+   <div class="cite">${C([["author","Morris, Rae."],["title","“Skin.”"],["container","<i>Unguarded</i>,"],["pub","Atlantic Records,"],["date","2015."],["container","<i>Spotify</i>,"],["link","open.spotify.com/track/0OPES3Tw5r86O6fudK8gxi."]])}</div>
+   ${legend(["author","title","container","pub","date","link"])}
+   <div class="split">
+     <div><h3 style="color:var(--c-container)">A whole album</h3><p class="muted" style="margin:0;font-size:15px">Artist. <i>Album Title</i>. Label, Year.<br>Morris, Rae. <i>Unguarded</i>. Atlantic Records, 2015.</p></div>
+     <div><h3 style="color:var(--c-title)">Liner notes</h3><p class="muted" style="margin:0;font-size:15px">Writer of the notes. Liner notes. <i>Album Title</i>, by Artist, Label, Year.</p></div>
+   </div>
+   <div class="tip"><b>Song or album?</b><span>Song in “quotation marks”, album in <i>italics</i>. Small thing inside the big thing.</span></div>`},
+  {type:"build",q:"Build the Spotify citation for “Skin” by Rae Morris.",tiles:[["author","Morris, Rae."],["title","“Skin.”"],["container","<i>Unguarded</i>,"],["pub","Atlantic Records,"],["date","2015."],["container","<i>Spotify</i>,"],["link","open.spotify.com/track/0OPES3Tw5r86O6fudK8gxi."]],explain:"Artist, “Song,” <i>Album</i>, label, year, then the platform and link."},
+  {type:"mcq",q:"Which artist name is written correctly at the start of an entry?",options:["Rae Morris.","Morris, Rae.","Morris Rae."],answer:1,explain:"A solo artist is a person, so the name is flipped: Last Name, First Name."},
+  {type:"mcq",q:"You cite a song by the band Arctic Monkeys. How does the entry start?",options:["Monkeys, Arctic.","Arctic Monkeys.","“Arctic Monkeys.”"],answer:1,explain:"Band and group names are never flipped."}
+ ]},
+ {key:"falls",name:"Videos and live music",sub:"YouTube and concerts",color:"#7fe0e8",steps:[
+  {type:"learn",title:"YouTube: who made it?",html:`
+   <div class="split">
+     <div><h3 style="color:var(--c-author)">Creator is not the uploader</h3><p class="muted" style="margin:0;font-size:15px">McGonigal, Jane. “Gaming and Productivity.” <i>YouTube</i>, uploaded by Big Think, 3 July 2012, www.youtube.com/watch?v=mkdzy9bWW3E.</p></div>
+     <div><h3 style="color:var(--c-title)">Creator is the uploader</h3><p class="muted" style="margin:0;font-size:15px">The channel is the author, so no “uploaded by”.<br>Crazy Russian Hacker. “8 Hot Dog Gadgets put to the Test.” <i>YouTube</i>, 6 June 2016, www.youtube.com/watch?v=WBlpjSEtELs.</p></div>
+   </div>`},
+  {type:"learn",title:"A live concert",html:`
+   <p>For a performance you saw in person, give who performed, the title, the venue, the city and the date.</p>
+   <div class="cite">${C([["author","ISHCMC Music Department."],["title","<i>Secondary Winter Recital 2026</i>."],["pub","Secondary Theatre, ISHCMC, Ho Chi Minh City,"],["date","16 Dec. 2026."]])}</div>
+   ${legend(["author","title","pub","date"])}
+   <div class="tip"><b>Tip</b><span>If you focus on one performer or composer, start with their name instead, and describe their role later if needed.</span></div>`},
+  {type:"build",q:"Build the citation for Jane McGonigal's talk, uploaded by Big Think.",tiles:[["author","McGonigal, Jane."],["title","“Gaming and Productivity.”"],["container","<i>YouTube</i>,"],["pub","uploaded by Big Think,"],["date","3 July 2012,"],["link","www.youtube.com/watch?v=mkdzy9bWW3E."]],explain:"Author, “Video,” <i>YouTube</i>, uploaded by, date, link."},
+  {type:"mcq",q:"A YouTuber made and uploaded their own video. How does the citation start?",options:["With the channel name as the author","With the word YouTube","With “uploaded by”"],answer:0,explain:"When the creator is the uploader, the channel goes first as the author, and you leave out “uploaded by”."},
+  {type:"mcq",q:"Which detail must a live concert citation include that a Spotify citation does not?",options:["The record label","The venue and city","An access date"],answer:1,explain:"A live performance happened in a place, so give the venue, the city and the date."}
+ ]},
+ {key:"temple",name:"Scores",sub:"Sheet music",color:"#ffb3d1",steps:[
+  {type:"learn",title:"Citing a musical score",html:`
+   <p>The <b>composer</b> takes the author spot. The score title goes in <i>italics</i>, like a book. If the edition has an editor, name them after the title.</p>
+   <div class="cite">${C([["author","Bach, Johann Sebastian."],["title","<i>Six Suites for Violoncello Solo</i>."],["plain","Edited by Bettina Schwemer and Douglas Woodfull-Harris,"],["pub","Bärenreiter,"],["date","2000."]])}</div>
+   ${legend(["author","title","plain","pub","date"])}
+   <p class="example"><span class="lab">Pattern:</span> Composer Last Name, First Name. <i>Title of Score</i>. Edited by Name, Publisher, Year.</p>
+   <div class="tip"><b>Online score?</b><span>Add the website in italics and the URL at the end, like any online source.</span></div>`},
+  {type:"build",q:"Build the citation for this edition of Bach's cello suites.",tiles:[["author","Bach, Johann Sebastian."],["title","<i>Six Suites for Violoncello Solo</i>."],["plain","Edited by Bettina Schwemer and Douglas Woodfull-Harris,"],["pub","Bärenreiter,"],["date","2000."]],explain:"Composer, <i>Title</i>, editor, publisher, year."},
+  {type:"mcq",q:"Who goes in the author spot for a score?",options:["The editor","The composer","The publisher"],answer:1,explain:"The composer wrote the music, so they come first. The editor comes after the title."}
+ ]},
+ {key:"jungle",name:"In-text citations",sub:"Quotes, paraphrases, timestamps",color:"#7be3a8",steps:[
+  {type:"learn",title:"The short tag in your sentence",html:`
+   <p>Put the first word of the Works Cited entry (usually the author's last name) and the <b>page number</b> in brackets. No comma between them.</p>
+   <div class="sheet" style="margin:10px 0"><div class="item" style="background:var(--bg)"><table><tr><th>Source</th><th>In brackets</th></tr>
+     <tr><td>One author</td><td><b>(Nettl 57)</b></td></tr>
+     <tr><td>Two authors</td><td><b>(Nettl and Rommen 57)</b></td></tr>
+     <tr><td>Three or more</td><td><b>(Burkholder et al. 214)</b></td></tr>
+     <tr><td>No author</td><td><b>(“How Gamelan Tuning Works”)</b></td></tr>
+     <tr><td>No page numbers</td><td><b>(Malm)</b></td></tr>
+     <tr><td>Song or video</td><td><b>(McGonigal 00:02:15-00:02:45)</b></td></tr>
+   </table></div></div>
+   <div class="tip"><b>No author?</b><span>Use a short version of the title, in the same style as the Works Cited entry.</span></div>`},
+  {type:"learn",title:"Four ways to use a source",html:`
+   <div class="split">
+     <div><h3 style="color:var(--c-title)">Direct quote</h3><p class="muted" style="margin:0;font-size:15px">Word for word, in “double quotation marks”, then cite.</p></div>
+     <div><h3 style="color:var(--c-date)">Paraphrase</h3><p class="muted" style="margin:0;font-size:15px">In your own words. No quotation marks, but you <b>still cite</b>.</p></div>
+     <div><h3 style="color:var(--c-author)">Indirect quote</h3><p class="muted" style="margin:0;font-size:15px">Quoting someone your source quoted. Single marks inside double marks, and <b>qtd. in</b>: (qtd. in Nettl 78-79).</p></div>
+     <div><h3 style="color:var(--c-container)">Long quote</h3><p class="muted" style="margin:0;font-size:15px">More than four lines? Start a new line, indent it half an inch, drop the quotation marks, and put the citation after the final full stop.</p></div>
+   </div>`},
+  {type:"mcq",q:"You quote page 214 of a book by Burkholder, Grout and Palisca. Which citation is right?",options:["(Burkholder, Grout, Palisca 214)","(Burkholder et al. 214)","(Burkholder and others, 214)"],answer:1,explain:"Three or more authors: first last name plus “et al.”"},
+  {type:"spot",q:"Tap the mistake in this sentence.",parts:[["According to ethnomusicologist Bruno Nettl,"],["“music often has functional purposes”"],["(Nettl, 57).",true]],explain:"No comma between name and page: (Nettl 57)."},
+  {type:"mcq",q:"You quote words sung between 1:12 and 1:30 of a song by Rae Morris. Which citation is right?",options:["(Morris 00:01:12-00:01:30)","(Morris, page 1)","(Morris)"],answer:0,explain:"Songs and videos have no pages, so give the time range in hours, minutes and seconds."},
+  {type:"mcq",g:[2,3],q:"A musician is quoted inside Nettl's book on pages 78-79. You use that quote. Which is correct?",options:["“music is ““often used as expression””” (Nettl 78-79)","“music is ‘often used as expression’” (qtd. in Nettl 78-79)","music is often used as expression (Nettl)"],answer:1,explain:"Single marks for the quote inside the quote, and “qtd. in” the source you actually read."},
+  {type:"mcq",q:"You summarise Nettl's idea from page 62 in your own words. Do you need a citation?",options:["Yes: (Nettl 62)","No, because there are no quotation marks","Only if it is longer than one sentence"],answer:0,explain:"A paraphrase still uses someone else's idea, so it always gets a citation."}
+ ]},
+ {key:"ridge",name:"IB academic integrity",sub:"AI tools, figures, consistency",color:"#ffa94d",steps:[
+  {type:"learn",title:"Academic integrity in the IB",html:`
+   <p>In the IB Diploma, you cite <b>everything you did not create yourself</b>: words, ideas, images, recordings, scores, data and output from AI tools.</p>
+   <ul class="rules">
+     <li>Use <b>one</b> citation style, such as MLA 9, all the way through a piece of work.</li>
+     <li>Every in-text citation must match an entry in your Works Cited list, and every entry must be used in the text.</li>
+     <li>For online sources, add the date you accessed them, even though MLA 9 makes it optional.</li>
+     <li>This applies to your Extended Essay, internal assessments, Theory of Knowledge (TOK) essay and coursework.</li>
+   </ul>
+   <div class="tip"><b>Check</b><span>Follow your school's academic integrity policy and ask your supervisor when you are unsure.</span></div>`},
+  {type:"learn",title:"AI tools and figures",html:`
+   <p class="example"><span class="lab">AI tool pattern (MLA guidance):</span> “Your prompt” prompt. <i>Name of AI Tool</i>, version, Company, Date, URL.</p>
+   <div class="cite">${C([["title","“Explain what a ground bass is in Baroque music”"],["plain","prompt."],["container","<i>ChatGPT</i>,"],["plain","GPT-4o version,"],["pub","OpenAI,"],["date","12 Oct. 2026,"],["link","chatgpt.com."]])}</div>
+   <p class="muted" style="font-size:15px">A made-up example. Only use AI tools where your teacher allows them, and say how you used them.</p>
+   <p style="margin-top:14px"><b>Figures:</b> label each image, chart or score excerpt in your essay <b>Fig. 1</b>, <b>Fig. 2</b> and so on. Give it a caption that names the source, and list the source in your Works Cited.</p>
+   <div class="cite" style="font-size:15.5px">Fig. 1. Opening of the Prelude from Suite No. 1, from Bach, <i>Six Suites for Violoncello Solo</i>.</div>`},
+  {type:"mcq",q:"You paste four bars of a printed score into your Extended Essay. What do you do?",options:["Nothing, because music is not words","Label it as a figure, add a caption with the source, and cite it","Only cite it if you copy more than one page"],answer:1,explain:"A score excerpt is someone else's work, so it gets a figure label, a caption and a Works Cited entry."},
+  {type:"mcq",q:"In an MLA citation for an AI tool, what takes the title spot?",options:["The name of the company","A description of your prompt, in quotation marks","Your own name"],answer:1,explain:"The prompt you typed (or a description of it) goes first, in quotation marks, followed by the word prompt."},
+  {type:"mcq",q:"Your IA uses MLA for books and a different style for websites. Is that acceptable?",options:["Yes, any mix is fine","No, use one style consistently all the way through","Only if the essay is longer than 2,000 words"],answer:1,explain:"The IB expects one citation style used consistently across the whole piece of work."}
+ ]},
+ {key:"volcano",name:"Encore",sub:"Final mixed challenge",color:"#ff6f82",steps:[
+  {type:"learn",title:"Encore round",html:`<p>Quick questions from every zone. Get them all right for three stars, then open the treasure chest.</p><div class="tip"><b>Stuck?</b><span>The <b>Cheat sheet</b> button at the top has every pattern. Real musicians check their music too.</span></div>`},
+  {type:"mcq",q:"Which goes in italics?",options:["A song title","An album title","A YouTube video title"],answer:1,explain:"Containers (albums, books, journals, websites, scores) are in italics. Songs, articles and videos go in quotation marks."},
+  {type:"build",q:"Put these Works Cited entries in order.",prompt:"Tap from first to last.",tiles:[["plain","Malm, William P."],["plain","McGonigal, Jane."],["plain","Morris, Rae."],["plain","Nettl, Bruno."]],explain:"Ma comes before Mc, and Mc before Mo. Then Nettl."},
+  {type:"spot",q:"Find the wrong piece in this book citation.",parts:[["Paul, Roger."],["“IB Music Revision Guide.”",true],["3rd ed.,"],["Anthem Press,"],["2018."]],explain:"A book is a container, so its title goes in italics: <i>IB Music Revision Guide</i>."},
+  {type:"mcq",g:[2,3],q:"Which part of an MLA 9 book citation is no longer needed?",options:["The publisher","The city of publication","The year"],answer:1,explain:"MLA 9 dropped the city. Publisher and year stay."},
+  {type:"mcq",q:"You cite a web page. What goes in italics?",options:["The title of the page","The name of the website","The author"],answer:1,explain:"The website is the container, so it goes in italics. The page title goes in quotation marks."},
+  {type:"mcq",g:[1,2],q:"When should you add an access date to an online source?",options:["Always, on every source","When the page has no date of its own","Never"],answer:1,explain:"Access dates are optional in MLA 9. They help most when the page gives no publication date."},
+  {type:"mcq",q:"You paraphrase page 12 of a book by two authors, Smith and Lee. Which is right?",options:["(Smith and Lee 12)","(Smith et al. 12)","(Smith, Lee, p.12)"],answer:0,explain:"Two authors: both last names joined with “and”, then the page."}
+ ]}
+];
+
+/* ---------- State ---------- */
+const store={get(){try{return JSON.parse(localStorage.getItem("cq-mla9")||"null")}catch(e){return null}},set(v){try{localStorage.setItem("cq-mla9",JSON.stringify(v))}catch(e){}}};
+let S=store.get()||{};S.prog=S.prog||{};S.sound=S.sound!==false;S.stars=[];
+let play=null; // {li, si, mistakes}
+const app=document.getElementById("app");
+const save=()=>store.set(S);
+const total=()=>S.stars.reduce((a,b)=>a+b,0);
+const unlocked=i=>i===0||S.stars[i-1]>0;
+
+/* ---------- Levels by grade: each grade gets its own set of zones and its own saved progress ---------- */
+const GRADES={
+ 1:{name:"Explorer",band:"Grades 6 to 8",prog:"MYP 1 to 3",color:"#9be564",
+    desc:"Learn the basics: books, websites, songs, videos and quoting in your writing.",
+    zones:["shore","books","web","caves","falls","jungle","volcano"],
+    access:"Add “Accessed” and the date you read the page only if the page shows no date of its own."},
+ 2:{name:"Navigator",band:"Grades 9 to 10",prog:"MYP 4 to 5",color:"#6ec8ff",
+    desc:"Everything in Explorer, plus research databases, musical scores and quotes inside quotes.",
+    zones:["shore","books","web","light","caves","falls","temple","jungle","volcano"],
+    access:"Optional in MLA 9. Add “Accessed” and the date you read the page when the page shows no date of its own."},
+ 3:{name:"Captain",band:"Grades 11 to 12",prog:"IB Diploma",color:"#ffa94d",
+    desc:"The full island, plus IB academic integrity: AI tools, figures in your Extended Essay and access dates.",
+    zones:["shore","books","web","light","caves","falls","temple","jungle","ridge","volcano"],
+    access:"MLA 9 makes it optional, but for IB work <b>always</b> add “Accessed” and the date you read the page."}
+};
+const ZMETA={shore:["Soundcheck Shore","boat"],books:["Bookwreck Cove","books"],web:["Signal Tower","tower"],light:["Lighthouse Point","lighthouse"],
+ caves:["Echo Caves","cave"],falls:["Waterfall Stage","falls"],temple:["Score Temple","temple"],jungle:["Quotation Jungle","jungle"],ridge:["Research Ridge","ridge"],volcano:["Volcano Summit","volcano"]};
+let LEVELS=[],ZONES=[];
+function applyGrade(g){
+  const G=GRADES[g];
+  LEVELS=G.zones.map(k=>{const b=BASE.find(x=>x.key===k);
+    return {...b,steps:b.steps.filter(st=>!st.g||st.g.includes(g)).map(st=>st.html?{...st,html:st.html.replace("%%ACCESS%%",G.access)}:st)}});
+  const n=LEVELS.length;
+  ZONES=LEVELS.map((L,i)=>{const [name,icon]=ZMETA[L.key];
+    const y=Math.round(640-i*(540/(n-1)));const x=(i===0||i===n-1)?300:(i%2?160:440)+(i%4===1?-10:i%4===3?10:0);
+    return {name,icon,x,y}});
+  S.grade=g;S.prog[g]=(S.prog[g]||[]).slice(0,n);while(S.prog[g].length<n)S.prog[g].push(0);
+  S.stars=S.prog[g];save();
+}
+function renderLevelSelect(){
+  play=null;
+  const emblem={1:`<circle r="30" fill="#fffaf0" stroke="#16324a" stroke-width="4"/><path d="M0-22l7 22-7 22-7-22z" fill="#ff6f82" stroke="#16324a" stroke-width="2"/><path d="M0 22l7-22h-14z" fill="#16324a"/><circle r="4" fill="#ffd166"/>`,
+   2:`<circle r="26" fill="none" stroke="#b5652f" stroke-width="7"/><circle r="9" fill="#b5652f" stroke="#16324a" stroke-width="2"/>${[0,45,90,135].map(a=>`<rect x="-3" y="-38" width="6" height="76" rx="3" fill="#b5652f" stroke="#16324a" stroke-width="1.5" transform="rotate(${a})"/>`).join("")}<circle r="26" fill="none" stroke="#16324a" stroke-width="2"/>`,
+   3:`<path d="M-34 6c10-22 58-22 68 0z" fill="#16324a"/><path d="M-26 4c6-30 46-30 52 0z" fill="#22303f" stroke="#ffd166" stroke-width="3"/><circle cy="-10" r="7" fill="#ffd166"/><path d="M-40 8h80" stroke="#ffd166" stroke-width="5" stroke-linecap="round"/>`};
+  app.innerHTML=`<section class="hero"><h1>Choose your level</h1><p>Pick your grade to set the route across Citation Island. Each level saves its own progress, so you can switch any time.</p></section>
+  <div class="grades">${[1,2,3].map(g=>{const G=GRADES[g],pr=S.prog[g],st=pr?pr.reduce((a,b)=>a+b,0):0;return `
+    <button class="gcard" data-g="${g}" style="--lc:${G.color}">
+      <svg viewBox="-44 -44 88 88" width="78" height="78" aria-hidden="true">${emblem[g]}</svg>
+      <span class="gband">${G.band}</span>
+      <b>${G.name}</b>
+      <span class="gprog">${G.prog} · ${G.zones.length} zones</span>
+      <span class="gdesc">${G.desc}</span>
+      <span class="gstat">${st?`★ ${st} of ${G.zones.length*3} stars · Continue`:"Start here"}</span>
+    </button>`}).join("")}</div>`;
+  app.querySelectorAll(".gcard").forEach(b=>b.onclick=()=>{applyGrade(+b.dataset.g);renderMap()});
+  document.getElementById("lvlBtn").textContent=S.grade?GRADES[S.grade].band:"Choose level";
+  window.scrollTo({top:0});
+}
+
+
+/* ---------- Sound: each right answer plays the next note of a scale ---------- */
+let ac=null;
+function tone(freq,t0=0,dur=.18,type="triangle",vol=.16){
+  if(!S.sound)return;
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=freq;
+    const t=ac.currentTime+t0;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.05);}catch(e){}
+}
+const SCALE=[261.6,293.7,329.6,349.2,392,440,493.9,523.3];
+const sRight=n=>{tone(SCALE[n%8]);tone(SCALE[n%8]*1.5,.08,.2,"sine",.08)};
+const sWrong=()=>{tone(185,0,.22,"sawtooth",.07);tone(175,.12,.25,"sawtooth",.06)};
+const sWin=()=>[0,2,4,7].forEach((n,i)=>tone(SCALE[n],i*.12,.35));
+
+/* ---------- Helpers ---------- */
+const h=(s)=>{const t=document.createElement("template");t.innerHTML=s.trim();return t.content.firstElementChild};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const starSVG=(on,i)=>`<svg viewBox="0 0 24 24" class="${on?"on":""}" style="animation-delay:${i*.18}s"><path fill="${on?"#ffc94a":"#3a3f7a"}" d="M12 2l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8 5.7 21.4l1.5-7.1L1.8 9.4 9 8.6z"/></svg>`;
+function updateTop(){document.getElementById("starCount").textContent=total();document.getElementById("starMax").textContent=LEVELS.length*3;document.querySelector(".pill.star").hidden=!LEVELS.length;const b=document.getElementById("soundBtn");b.textContent=S.sound?"Sound on":"Sound off";b.setAttribute("aria-pressed",S.sound)}
+
+/* ---------- Map: a treble staff, one note per level ---------- */
+/* ---------- Island map: eight zones joined by a trail, fog over the ones not reached yet ---------- */
+
+function zoneIcon(t,c){
+  const o='stroke="#123" stroke-width="2.5" stroke-linejoin="round"';
+  switch(t){
+   case "boat":return `<path d="M-30 6h60l-10 16h-40z" fill="#a0522d" ${o}/><path d="M-2 4v-38l26 30z" fill="#fff" ${o}/><path d="M-4 4v-30l-18 26z" fill="${c}" ${o}/>`;
+   case "books":return `<rect x="-26" y="2" width="52" height="12" rx="2" fill="${c}" ${o}/><rect x="-22" y="-10" width="44" height="12" rx="2" fill="#6ec8ff" ${o}/><rect x="-18" y="-22" width="36" height="12" rx="2" fill="#ffd166" ${o}/><path d="M-26 14l-8 10h68l-8-10" fill="#a0522d" ${o}/>`;
+   case "lighthouse":return `<path d="M-12 22l5-44h14l5 44z" fill="#fff" ${o}/><path d="M-10 8h20M-8-8h16" stroke="${c}" stroke-width="7"/><rect x="-10" y="-34" width="20" height="12" fill="#ffd166" ${o}/><path d="M-12-34l12-10 12 10z" fill="${c}" ${o}/><path d="M10-28l30-10v20z" fill="#ffd166" opacity=".5"/>`;
+   case "cave":return `<path d="M-34 22c0-30 14-46 34-46s34 16 34 46z" fill="#7d7a8c" ${o}/><path d="M-14 22c0-16 6-24 14-24s14 8 14 24z" fill="#1b1730"/><text x="16" y="-14" font-size="16" fill="${c}">♪</text><text x="22" y="-26" font-size="12" fill="${c}">♫</text>`;
+   case "falls":return `<path d="M-30 22v-30l12-14h36l12 14v30z" fill="#6b8f71" ${o}/><path d="M-8-22h16v40h-16z" fill="#8fd8ff"/><path d="M-6-18v34M0-18v34M6-18v34" stroke="#fff" stroke-width="1.5" opacity=".8"/><ellipse cx="0" cy="22" rx="22" ry="5" fill="#8fd8ff" ${o}/><path d="M-30 22h60" stroke="${c}" stroke-width="5"/>`;
+   case "temple":return `<path d="M-30-14l30-16 30 16z" fill="${c}" ${o}/><rect x="-30" y="-14" width="60" height="6" fill="#e9dcc0" ${o}/><path d="M-24-8v26M-8-8v26M8-8v26M24-8v26" stroke="#e9dcc0" stroke-width="7"/><path d="M-24-8v26M-8-8v26M8-8v26M24-8v26" stroke="#123" stroke-width="1"/><rect x="-34" y="18" width="68" height="6" fill="#e9dcc0" ${o}/>`;
+   case "jungle":return `<circle cx="-14" cy="-6" r="16" fill="#2f9e5b" ${o}/><circle cx="12" cy="-12" r="18" fill="#3dbb6d" ${o}/><rect x="-2" y="2" width="6" height="22" fill="#a0522d" ${o}/><text x="-26" y="-2" font-size="18" font-weight="700" fill="${c}" font-family="Georgia,serif">“</text><text x="16" y="-6" font-size="18" font-weight="700" fill="${c}" font-family="Georgia,serif">”</text>`;
+   case "tower":return `<path d="M-16 24l16-50 16 50z" fill="none" stroke="#16324a" stroke-width="4" stroke-linejoin="round"/><path d="M-11 10h22M-6-6h12" stroke="#16324a" stroke-width="3"/><circle cy="-28" r="6" fill="${c}" stroke="#123" stroke-width="2.5"/><path d="M12-38a16 16 0 0 1 0 20M18-44a24 24 0 0 1 0 32M-12-38a16 16 0 0 0 0 20M-18-44a24 24 0 0 0 0 32" stroke="${c}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+   case "ridge":return `<path d="M-42 24l22-36 12 14 14-26 34 48z" fill="#8c8f9e" stroke="#123" stroke-width="2.5" stroke-linejoin="round"/><path d="M6-24l7 12-7-3-7 3z" fill="#fff"/><path d="M6-24v-18" stroke="#123" stroke-width="2.5"/><path d="M6-42l14 5-14 5z" fill="${c}" stroke="#123" stroke-width="2"/><rect x="-30" y="8" width="26" height="14" rx="3" fill="#fffaf0" stroke="#123" stroke-width="2"/><path d="M-26 13h18M-26 17h12" stroke="#123" stroke-width="1.5"/>`;
+   case "volcano":return `<path d="M-40 24l26-44h28l26 44z" fill="#8a5a44" ${o}/><path d="M-14-20q14 10 28 0l-4 10q-10 6-20 0z" fill="${c}"/><circle cx="-6" cy="-34" r="8" fill="#c9c3d3" opacity=".8"/><circle cx="6" cy="-44" r="10" fill="#c9c3d3" opacity=".6"/><rect x="-10" y="8" width="20" height="14" rx="2" fill="#ffd166" ${o}/><path d="M-10 13h20" stroke="#123" stroke-width="2"/>`;
+  }
+}
+function renderMap(){if(!S.grade||!LEVELS.length)return renderLevelSelect();document.getElementById("lvlBtn").textContent=GRADES[S.grade].band;
+  play=null;updateTop();
+  const done=S.stars.filter(s=>s>0).length, next=S.stars.findIndex((s,i)=>s===0&&unlocked(i));
+  const trail=ZONES.map((z,i)=>(i?"L":"M")+z.x+" "+z.y).join(" ");
+  const island="M300 34C430 30 525 110 548 235C570 355 545 470 528 560C505 665 405 702 300 702C185 702 92 665 70 560C48 450 40 330 68 220C98 108 180 36 300 34Z";
+  let waves="";for(let r=0;r<9;r++)for(let k=0;k<4;k++){const x=(k*170+(r%2)*85)%600-10,y=40+r*80;if(x<60||x>520||y<20||y>700)waves+=`<path d="M${x} ${y}q8-6 16 0t16 0" stroke="#5fb4d6" stroke-width="2" fill="none" opacity=".55"/>`;}
+  let zones="";
+  ZONES.forEach((z,i)=>{
+    const L=LEVELS[i],u=unlocked(i),d=S.stars[i]>0;
+    zones+=`<g class="zone ${u?"":"locked"}" data-i="${i}" tabindex="${u?0:-1}" role="button" aria-label="Zone ${i+1}: ${z.name}, ${L.name}${u?"":" (still in the fog)"}" transform="translate(${z.x} ${z.y})">
+      <ellipse cx="0" cy="26" rx="44" ry="10" fill="#000" opacity=".18"/>
+      <g class="zi">${zoneIcon(z.icon,L.color)}</g>
+      ${u?"":`<g class="fog"><circle cx="-24" cy="2" r="20"/><circle cx="0" cy="-10" r="26"/><circle cx="24" cy="2" r="20"/><circle cx="0" cy="14" r="18"/><text x="0" y="10" text-anchor="middle" font-size="26" font-weight="700" fill="#7b93a6" font-family="Fredoka,sans-serif">?</text></g>`}
+      <g transform="translate(0 46)"><rect x="-80" y="-14" width="160" height="28" rx="12" fill="#fffaf0" stroke="${u?L.color:"#9aa"}" stroke-width="3"/>
+      <text x="0" y="6" text-anchor="middle" font-size="16" font-weight="700" fill="#16324a" font-family="Fredoka,sans-serif">${i+1}. ${z.name}</text></g>
+      ${d?`<g transform="translate(34 -26)"><path d="M0 0v-26" stroke="#123" stroke-width="2.5"/><path d="M0-26l18 6-18 6z" fill="${L.color}" stroke="#123" stroke-width="2"/></g><text x="0" y="80" text-anchor="middle" font-size="17" fill="#ffd166" stroke="#16324a" stroke-width=".6" font-family="sans-serif">${"★".repeat(S.stars[i])}${"☆".repeat(3-S.stars[i])}</text>`:""}
+    </g>`;
+  });
+  const here=next>=0?ZONES[next]:ZONES[ZONES.length-1];
+  app.innerHTML=`
+  <section class="hero">
+    <h1>Welcome to Citation Island</h1>
+    <p>${GRADES[S.grade].name} route, ${GRADES[S.grade].band}: explore all ${LEVELS.length} zones to reach the treasure on Volcano Summit. Each zone teaches one MLA 9 skill, and clearing it lifts the fog from the next.</p><p><a class="doclink" href="https://claude.ai/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a></p>
+  </section>
+  <div class="mapbox">
+    <svg viewBox="0 0 600 740" role="group" aria-label="Island map">
+      <rect width="600" height="740" fill="#2a8fc0"/>${waves}
+      <path d="${island}" fill="#f3d9a4" stroke="#fff3d6" stroke-width="6"/>
+      <path d="${island}" fill="#58b368" transform="translate(30 36) scale(.9)"/>
+      <path d="${island}" fill="#4aa35c" transform="translate(90 110) scale(.7)" opacity=".6"/>
+      <path d="${trail}" stroke="#fff3d6" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+      <path d="${trail}" stroke="#c98d4a" stroke-width="3" fill="none" stroke-dasharray="2 10" stroke-linecap="round"/>
+      <g transform="translate(70 690)"><circle r="22" fill="#fffaf0" stroke="#16324a" stroke-width="2"/><path d="M0-16l5 16-5 16-5-16z" fill="#ff6f82"/><path d="M0 16l5-16h-10z" fill="#16324a"/><text y="-26" text-anchor="middle" font-size="12" fill="#fff" font-weight="700" font-family="Fredoka,sans-serif">N</text></g>
+      ${zones}
+      <g class="pin" transform="translate(${here.x} ${here.y-40})"><g class="bob"><path d="M0 0c-12-14-14-20-14-26a14 14 0 0 1 28 0c0 6-2 12-14 26z" fill="#ff6f82" stroke="#16324a" stroke-width="2.5"/><circle cy="-26" r="5.5" fill="#fffaf0"/></g></g>
+    </svg>
+  </div>
+  <div class="mapfoot">
+    <span class="pill">${done} of ${LEVELS.length} zones explored</span>
+    ${next>=0?`<button class="btn" id="go">${done?"Explore "+ZONES[next].name:"Start at "+ZONES[0].name}</button>`:`<button class="btn" id="badge">Open the treasure</button>`}
+    ${total()?`<button class="btn alt" id="reset">Start over</button>`:""}
+  </div>
+  <h2 class="logh">Explorer's log</h2>
+  <div class="levels">${LEVELS.map((L,i)=>`
+    <button class="lvl" data-i="${i}" style="--lc:${L.color}" ${unlocked(i)?"":"disabled"}>
+      <span class="num">${i+1}</span>
+      <span style="min-width:0"><b>${ZONES[i].name}</b><small>${unlocked(i)?L.name+": "+L.sub:"In the fog. Clear zone "+i+" first."}</small>
+      <span class="st" aria-label="${S.stars[i]} stars">${"★".repeat(S.stars[i])}${"☆".repeat(3-S.stars[i])}</span></span>
+    </button>`).join("")}</div>`;
+  app.querySelectorAll("[data-i]").forEach(el=>{
+    const go=()=>{const i=+el.dataset.i;if(unlocked(i))startLevel(i)};
+    el.addEventListener("click",go);
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}});
+  });
+  const g=document.getElementById("go");if(g)g.onclick=()=>startLevel(next);
+  const b=document.getElementById("badge");if(b)b.onclick=renderFinale;
+  const r=document.getElementById("reset");if(r)r.onclick=()=>{
+    if(r.dataset.sure){S.stars=LEVELS.map(()=>0);save();renderMap()}else{r.dataset.sure=1;r.textContent="Tap again to clear the map"}
+  };
+  window.scrollTo({top:0});
+}
+
+/* ---------- Level play ---------- */
+let streak=0;
+function startLevel(i){play={li:i,si:0,mistakes:0};streak=0;renderStep()}
+function frame(inner){
+  const L=LEVELS[play.li],n=L.steps.length;
+  app.innerHTML=`<div style="--lc:${L.color}">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <span class="eyebrow">Zone ${play.li+1} · ${ZONES[play.li].name} · ${L.name}</span><span class="muted" style="font-size:14px;font-variant-numeric:tabular-nums">Step ${play.si+1} of ${n}</span></div>
+    <div class="prog"><i style="width:${play.si/n*100}%"></i></div>
+    <div id="stage"></div></div>`;
+  requestAnimationFrame(()=>{const p=app.querySelector(".prog i");if(p)p.style.width=((play.si+1)/n*100)+"%"});
+  const st=document.getElementById("stage");st.appendChild(inner);window.scrollTo({top:0});return st;
+}
+function next(){play.si++;if(play.si>=LEVELS[play.li].steps.length)finishLevel();else renderStep()}
+function feedback(card,ok,explain){
+  if(ok){streak++;sRight(streak-1)}else{play.mistakes++;streak=0;sWrong();card.classList.add("shake")}
+  const fb=h(`<div class="fb ${ok?"ok":"no"}" role="status">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" style="flex:none"><circle cx="17" cy="17" r="16" fill="${ok?"#46d69c":"#ff6f82"}"/>${ok?'<path d="M10 17.5l5 5 9-11" stroke="#15173a" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>':'<path d="M11.5 11.5l11 11M22.5 11.5l-11 11" stroke="#15173a" stroke-width="3.5" stroke-linecap="round"/>'}</svg>
+    <div><h3>${ok?["Treasure found!","Nailed it!","Perfect pitch!","Path cleared!"][Math.floor(Math.random()*4)]:"Not quite"}</h3><p>${explain}</p></div></div>`);
+  card.appendChild(fb);
+  const a=h(`<div class="actions"><button class="btn">Continue</button></div>`);
+  card.appendChild(a);const b=a.querySelector("button");b.onclick=next;b.focus({preventScroll:true});
+  fb.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function renderStep(){
+  const s=LEVELS[play.li].steps[play.si];
+  if(s.type==="learn"){
+    const c=h(`<div class="card"><span class="eyebrow">Learn</span><h2>${s.title}</h2>${s.html}<div class="actions"><button class="btn">Got it</button></div></div>`);
+    frame(c);c.querySelector(".btn").onclick=next;return;
+  }
+  if(s.type==="mcq"){
+    const c=h(`<div class="card"><span class="eyebrow">Challenge</span><h2>${s.q}</h2><div class="opts"></div></div>`);
+    const box=c.querySelector(".opts");
+    shuffle(s.options.map((o,i)=>[o,i])).forEach(([o,i])=>{
+      const b=h(`<button class="opt">${o}</button>`);
+      b.onclick=()=>{box.querySelectorAll(".opt").forEach(x=>x.disabled=true);
+        const ok=i===s.answer;b.classList.add(ok?"right":"wrong");
+        if(!ok)[...box.children].find(x=>x.dataset.i==s.answer).classList.add("right");
+        feedback(c,ok,s.explain)};
+      b.dataset.i=i;box.appendChild(b);
+    });
+    frame(c);return;
+  }
+  if(s.type==="build"){
+    const c=h(`<div class="card"><span class="eyebrow">Build it</span><h2>${s.q}</h2><p class="muted">${s.prompt||"Tap the pieces in the right order. Tap a placed piece to send it back."}</p>
+      <div class="slots" aria-label="Your answer"></div><div class="pool"></div>
+      <div class="actions"><button class="btn" disabled>Check</button></div></div>`);
+    const slots=c.querySelector(".slots"),pool=c.querySelector(".pool"),chk=c.querySelector(".btn");
+    const order=s.tiles.map((t,i)=>i);let placed=[];
+    let sh=shuffle(order);if(sh.every((v,i)=>v===i))sh=sh.reverse();
+    const draw=()=>{
+      slots.innerHTML="";placed.forEach(i=>{const [k,t]=s.tiles[i];const b=h(`<button class="tile k-${k}">${t}</button>`);b.onclick=()=>{placed=placed.filter(x=>x!==i);draw()};slots.appendChild(b)});
+      pool.innerHTML="";sh.forEach(i=>{const [k,t]=s.tiles[i];const b=h(`<button class="tile k-${k}${placed.includes(i)?" used":""}">${t}</button>`);b.onclick=()=>{if(!placed.includes(i)){placed.push(i);tone(SCALE[placed.length%8]*.5,0,.08,"sine",.06);draw()}};pool.appendChild(b)});
+      chk.disabled=placed.length!==s.tiles.length;
+    };
+    draw();
+    chk.onclick=()=>{
+      const ok=placed.every((v,i)=>s.tiles[v][1]===s.tiles[i][1]);
+      c.querySelectorAll(".tile").forEach(t=>t.disabled=true);chk.parentElement.remove();
+      feedback(c,ok,ok?s.explain:`The right order is: <span class="cite" style="display:block;margin:8px 0 4px">${s.tiles.map(([k,t])=>`<span class="seg k-${k}">${t}</span>`).join(" ")}</span>${s.explain}`);
+    };
+    frame(c);return;
+  }
+  if(s.type==="spot"){
+    const c=h(`<div class="card"><span class="eyebrow">Spot the error</span><h2>${s.q}</h2><div class="spotline"></div></div>`);
+    const line=c.querySelector(".spotline");
+    s.parts.forEach(([t,bad])=>{const b=h(`<button class="spot">${t}</button>`);b.dataset.bad=bad?1:"";
+      b.onclick=()=>{line.querySelectorAll(".spot").forEach(x=>x.disabled=true);
+        const ok=!!bad;b.classList.add(ok?"right":"wrong");if(!ok)line.querySelector('[data-bad="1"]').classList.add("right");
+        feedback(c,ok,s.explain)};
+      line.appendChild(b);line.appendChild(document.createTextNode(" "))});
+    frame(c);return;
+  }
+}
+function finishLevel(){
+  const i=play.li,m=play.mistakes,stars=m===0?3:m===1?2:1;
+  const best=Math.max(S.stars[i],stars);S.stars[i]=best;save();updateTop();
+  const last=i===LEVELS.length-1;
+  app.innerHTML=`<div class="card result" style="--lc:${LEVELS[i].color}">
+    <span class="eyebrow">Zone ${i+1} explored</span><h2>${ZONES[i].name}: ${["Good start","Great work","Legendary explorer"][stars-1]}!</h2>
+    <div class="stars">${[0,1,2].map(k=>starSVG(k<stars,k)).join("")}</div>
+    <p class="muted" style="margin-inline:auto">${m===0?"No mistakes. Three stars.":`${m} mistake${m>1?"s":""} this time. Replay any time to raise your score.`}${last?"":`<br>The fog has lifted from <b style=\"color:var(--ink)\">${ZONES[i+1].name}</b>.`}</p>
+    <div class="actions">
+      <button class="btn alt" id="again">Replay level</button>
+      <button class="btn" id="on">${last?"Open the treasure":"Back to the island"}</button>
+    </div></div>`;
+  sWin();confetti(stars*40);
+  document.getElementById("again").onclick=()=>startLevel(i);
+  document.getElementById("on").onclick=()=>last?renderFinale():renderMap();
+  window.scrollTo({top:0});
+}
+function renderFinale(){
+  play=null;const t=total();
+  app.innerHTML=`<div class="card result">
+    <span class="eyebrow">Island explored</span><h2>You found the treasure, Citation Pro!</h2>
+    <svg class="badge" viewBox="0 0 180 160" aria-hidden="true">
+      <circle cx="90" cy="70" r="66" fill="#ffd166" opacity=".18"/>
+      <path d="M40 60l10-38h80l10 38z" fill="#b5652f" stroke="#123" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M58 60l6-26M90 60V24M122 60l-6-26" stroke="#ffd166" stroke-width="5"/>
+      <rect x="36" y="64" width="108" height="16" fill="#ffd166" stroke="#123" stroke-width="3"/>
+      <text x="62" y="58" font-size="22" fill="#fff">♪</text><text x="98" y="52" font-size="24" fill="#fff">♫</text>
+      <rect x="40" y="80" width="100" height="62" rx="4" fill="#b5652f" stroke="#123" stroke-width="3"/>
+      <path d="M40 100h100M40 122h100" stroke="#8a4a20" stroke-width="3"/>
+      <rect x="80" y="88" width="20" height="24" rx="3" fill="#ffd166" stroke="#123" stroke-width="3"/>
+      <circle cx="90" cy="98" r="3" fill="#123"/>
+    </svg>
+    <p style="margin-inline:auto"><b style="color:var(--gold);font-size:22px">${t} / ${LEVELS.length*3} stars</b></p>
+    <p class="muted" style="margin-inline:auto">Keep the cheat sheet handy whenever you write your Works Cited list.</p><p style="margin-inline:auto"><a class="doclink" href="https://claude.ai/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a></p>
+    <div class="actions"><button class="btn alt" id="map">Back to the island</button><button class="btn" id="cs">Open cheat sheet</button></div></div>`;
+  document.getElementById("map").onclick=renderMap;document.getElementById("cs").onclick=renderSheet;
+  sWin();confetti(160);window.scrollTo({top:0});
+}
+
+/* ---------- Cheat sheet ---------- */
+function renderSheet(){
+  play=null;
+  const item=(t,pattern,ex,note)=>`<div class="item"><h3>${t}</h3><p class="muted" style="margin:0;font-size:15px">${pattern}</p>${ex?`<div class="cite">${C(ex)}</div>`:""}${note?`<p class="muted" style="margin:0;font-size:14px">${note}</p>`:""}</div>`;
+  app.innerHTML=`<section class="hero"><h1>Cheat sheet</h1><p>Every MLA 9 pattern from the quest in one place.</p><p><a class="doclink" href="https://claude.ai/artifact/YV8b9CZNQaKhi6Ys6xSXJ4" target="_blank" rel="noopener">Open the MLA Citation Snapshot doc</a> to read, print or download it.</p></section>
+  ${legend(["author","title","container","pub","date","link","plain"])}
+  <div class="sheet">
+    <div class="item"><h3>Works Cited page</h3><ul class="rules" style="margin:4px 0 0">
+      <li>New page at the end, titled <b>Works Cited</b>, centred, not bold.</li>
+      <li><b>Alphabetical</b> by the first word of each entry. Ignore A, An and The.</li>
+      <li><b>Double-spaced</b> with a <b>hanging indent</b> of half an inch.</li>
+      <li>Containers (book, album, journal, website, score) in <i>italics</i>. Small things inside them (song, article, page, video) in “quotation marks”.</li>
+      <li>Dates as Day Month Year, with long months shortened: 24 Apr. 2020. Access dates are optional.</li></ul></div>
+    ${item("Book (one author)","Last Name, First Name. <i>Title</i>. Edition, Publisher, Year.",[["author","Paul, Roger."],["title","<i>IB Music Revision Guide</i>."],["plain","3rd ed.,"],["pub","Anthem Press,"],["date","2018."]],"No city of publication in MLA 9.")}
+    ${item("Book (two authors)","First author flipped, second author in normal order.",[["author","Nettl, Bruno, and Timothy Rommen."],["title","<i>Excursions in World Music</i>."],["plain","7th ed.,"],["pub","Routledge,"],["date","2017."]])}
+    ${item("Book (three or more authors)","First author flipped, then et al.",[["author","Burkholder, J. Peter, et al."],["title","<i>A History of Western Music</i>."],["plain","10th ed.,"],["pub","W. W. Norton,"],["date","2019."]])}
+    ${item("Online encyclopedia","Author. “Entry.” <i>Encyclopedia</i>, Date, URL.",[["author","Malm, William P."],["title","“Japanese Music.”"],["container","<i>Encyclopedia Britannica</i>,"],["date","2015,"],["link","www.britannica.com/art/Japanese-music."]],"Leave out the publisher when it has the same name as the website.")}
+    ${item("Database article (JSTOR, ProQuest)","Author. “Article.” <i>Journal</i>, vol., no., Year, pages. <i>Database</i>, DOI or URL.",[["author","Langhamer, Claire."],["title","“Love and Courtship in Mid-Twentieth-Century England.”"],["container","<i>Historical Journal</i>, vol. 50, no. 1,"],["date","2007,"],["plain","pp. 173-96."],["container","<i>ProQuest</i>,"],["link","https://doi.org/10.1017/S0018246X06005966."]])}
+    <div class="item"><h3>Website, step by step</h3><ol style="margin:4px 0 0;padding-left:1.3em;display:grid;gap:4px">
+      <li>Author: Last Name, First Name, or the organisation. Skip it if there is none or it matches the website name.</li>
+      <li>“Page Title.” in quotation marks.</li><li><i>Website Name</i>, in italics.</li><li>Publisher, only if different from the website name.</li>
+      <li>Date: 3 Feb. 2025.</li><li>URL without https://.</li><li>Access date if the page has no date. IB students: always add it.</li></ol>
+      <div class="cite">${C([["author","Lee, Hannah."],["title","“Five Ways to Practise Scales.”"],["container","<i>Example Music Blog</i>,"],["pub","Example Media Group,"],["date","3 Feb. 2025,"],["link","www.example.com/practise-scales."]])}</div>
+      <p class="muted" style="margin:0;font-size:14px">Made-up example to show the shape.</p></div>
+    ${item("Song (Spotify, Apple Music)","Artist. “Song.” <i>Album</i>, Label, Year. <i>Platform</i>, URL.",[["author","Morris, Rae."],["title","“Skin.”"],["container","<i>Unguarded</i>,"],["pub","Atlantic Records,"],["date","2015."],["container","<i>Spotify</i>,"],["link","open.spotify.com/track/0OPES3Tw5r86O6fudK8gxi."]],"Flip a solo artist's name. Never flip a band name.")}
+    ${item("Album","Artist. <i>Album</i>. Label, Year.",[["author","Morris, Rae."],["title","<i>Unguarded</i>."],["pub","Atlantic Records,"],["date","2015."]])}
+    ${item("Liner notes","Writer of the notes. Liner notes. <i>Album</i>, by Artist, Label, Year.")}
+    ${item("YouTube (creator is not the uploader)","Author. “Video.” <i>YouTube</i>, uploaded by Name, Date, URL.",[["author","McGonigal, Jane."],["title","“Gaming and Productivity.”"],["container","<i>YouTube</i>,"],["pub","uploaded by Big Think,"],["date","3 July 2012,"],["link","www.youtube.com/watch?v=mkdzy9bWW3E."]])}
+    ${item("YouTube (creator is the uploader)","Channel. “Video.” <i>YouTube</i>, Date, URL.",[["author","Crazy Russian Hacker."],["title","“8 Hot Dog Gadgets put to the Test.”"],["container","<i>YouTube</i>,"],["date","6 June 2016,"],["link","www.youtube.com/watch?v=WBlpjSEtELs."]])}
+    ${item("Live concert","Performer. <i>Title</i>. Venue, City, Date.",[["author","ISHCMC Music Department."],["title","<i>Secondary Winter Recital 2026</i>."],["pub","Secondary Theatre, ISHCMC, Ho Chi Minh City,"],["date","16 Dec. 2026."]])}
+    ${item("Musical score","Composer. <i>Title</i>. Edited by Name, Publisher, Year.",[["author","Bach, Johann Sebastian."],["title","<i>Six Suites for Violoncello Solo</i>."],["plain","Edited by Bettina Schwemer and Douglas Woodfull-Harris,"],["pub","Bärenreiter,"],["date","2000."]])}
+    ${item("AI tool (IB Diploma)","“Your prompt” prompt. <i>AI Tool</i>, version, Company, Date, URL.",[["title","“Explain what a ground bass is in Baroque music”"],["plain","prompt."],["container","<i>ChatGPT</i>,"],["plain","GPT-4o version,"],["pub","OpenAI,"],["date","12 Oct. 2026,"],["link","chatgpt.com."]],"Made-up example. Figures: label images and score excerpts Fig. 1, Fig. 2, give a caption naming the source, and list the source in Works Cited.")}
+    <div class="item"><h3>In-text citations</h3>
+      <div style="overflow-x:auto"><table>
+        <tr><th>Source</th><th>Example</th></tr>
+        <tr><td>One author</td><td>(Nettl 57)</td></tr>
+        <tr><td>Two authors</td><td>(Nettl and Rommen 57)</td></tr>
+        <tr><td>Three or more</td><td>(Burkholder et al. 214)</td></tr>
+        <tr><td>No author</td><td>(“How Gamelan Tuning Works”)</td></tr>
+        <tr><td>No page numbers</td><td>(Malm)</td></tr>
+        <tr><td>Song or video</td><td>(McGonigal 00:02:15-00:02:45)</td></tr>
+        <tr><td>Indirect quote</td><td>“music is ‘often used as expression’” (qtd. in Nettl 78-79)</td></tr>
+        <tr><td>Paraphrase</td><td>No quotation marks, still cite: (Nettl 62)</td></tr>
+      </table></div>
+      <p class="muted" style="font-size:15px;margin-bottom:0">Quotes longer than four lines: new line, indent half an inch, no quotation marks, citation after the final full stop.</p></div>
+  </div>
+  <div class="actions" style="justify-content:flex-start"><button class="btn" id="back">Back to the island</button></div>`;
+  document.getElementById("back").onclick=renderMap;window.scrollTo({top:0});
+}
+
+/* ---------- Confetti ---------- */
+const cv=document.getElementById("confetti"),cx=cv.getContext("2d");let bits=[],raf=0;
+function confetti(n){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  cv.width=innerWidth;cv.height=innerHeight;
+  const cols=["#ffc94a","#ff9466","#6ec8ff","#c99bff","#7be3a8","#ff6f82"],glyph=["♪","♫","♩"];
+  for(let i=0;i<n;i++)bits.push({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.4,vx:(Math.random()-.5)*3,vy:2+Math.random()*3,r:Math.random()*6,c:cols[i%6],g:i%4===0?glyph[i%3]:null,a:Math.random()*6});
+  if(!raf)loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  bits.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.vy+=.04;b.a+=.1;cx.fillStyle=b.c;
+    if(b.g){cx.font="22px serif";cx.fillText(b.g,b.x,b.y)}else{cx.save();cx.translate(b.x,b.y);cx.rotate(b.a);cx.fillRect(-4,-2,8+b.r,5);cx.restore()}});
+  bits=bits.filter(b=>b.y<cv.height+30);
+  raf=bits.length?requestAnimationFrame(loop):0;if(!raf)cx.clearRect(0,0,cv.width,cv.height);
+}
+
+/* ---------- Wire up ---------- */
+document.getElementById("home").onclick=renderMap;
+document.getElementById("sheetBtn").onclick=renderSheet;
+document.getElementById("soundBtn").onclick=()=>{S.sound=!S.sound;save();updateTop()};
+document.getElementById("lvlBtn").onclick=renderLevelSelect;
+updateTop();renderLevelSelect();
+</script>
+</body>
+</html>
